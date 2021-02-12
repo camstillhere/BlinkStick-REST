@@ -1,0 +1,5 @@
+.idea/sonarlint
+.idea/sonarIssues.xml
+.idea/uiDesigner.xml
+build/*
+target

@@ -1,0 +1,33 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "6.1.0"
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dirs 'blinkstick'
+    }
+}
+
+dependencies {
+    implementation ( 'org.json:json:latest.integration')
+    implementation ( 'com.sun.net.httpserver:http:latest.integration')
+    implementation ( 'com.codeminders:hidapi:latest.integration')
+
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'com.cameron.stiller.blinkStick.Server'
+        )
+    }
+}

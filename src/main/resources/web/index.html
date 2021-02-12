@@ -1,0 +1,259 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testing platform</title>
+<style>
+
+html,body {
+	background:#0d4d2b;
+}
+
+.whitebg{
+	background:white;
+}
+
+.group {
+	display:block;
+	width:(100% - 10px);
+	height:auto;
+	min-height:40px;
+	padding:5px;
+}
+
+input[type="color"] {
+    -webkit-appearance: none;
+    border: solid 0px #11ef88;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    margin: 0;
+    display: block;
+    float: left;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+	padding:0;
+	margin:0;
+	border: solid 0px transparent;
+	border-radius: 40px;
+}
+
+
+</style>
+<script>
+
+waiting=false;
+lastUrl=""
+function pendingCheck(responseText)
+{
+	insaneFramerate(false);
+	waiting=false;
+	if(lastUrl!="")
+	{
+		httpGetAsync(lastUrl, pendingCheck)
+		lastUrl="";
+	}
+}
+
+function httpGetAsync(theUrl, callback)
+{
+	if(waiting==false)
+	{
+		waiting=true;
+		var xmlHttp = new XMLHttpRequest();
+		xmlHttp.onreadystatechange = function() { 
+			if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+				callback(xmlHttp.responseText);
+		}
+		xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+		xmlHttp.send(null);
+	}
+	else
+	{
+		lastUrl=theUrl;
+	}
+}
+
+function hexToRgb(hex) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+function fireColorChange(id,hex)
+{
+	rgb=hexToRgb(hex)
+	if(id=="all")
+	{
+		httpGetAsync("/setColor?deviceId=BS036121-3.1&r=" + rgb['r'] + "&g=" + rgb['g'] + "&b=" + rgb['b'],pendingCheck);
+		/*inputs = document.getElementsByTagName('input');
+		for (index = 0; index < inputs.length; ++index) {
+			if(inputs[index].getAttribute('type')=='color')
+			{
+				inputs[index].value=hex;
+			}
+		}*/
+		document.getElementById('all').style.opacity=1;
+	}
+	else
+	{
+		httpGetAsync("/setColor?deviceId=BS036121-3.1&r=" + rgb['r'] + "&g=" + rgb['g'] + "&b=" + rgb['b'] + "&index=" + id ,pendingCheck);
+		document.getElementById('all').style.opacity=0.5;
+	}
+}
+
+function componentToHex(c) {
+	if(c > 255)
+	{
+		c=255;
+	}
+	if(c < 0)
+	{
+		c=-1;
+	}
+	  var hex = c.toString(16);
+	  return hex.length == 1 ? "0" + hex : hex;
+}
+
+function rgbToHex(point)
+{
+	r=componentToHex(point['r']);
+	g=componentToHex(point['g']);
+	b=componentToHex(point['b']);
+	return "#" + r + g + b;
+}
+
+function httpGetAsyncSpecial(theUrl, callback)
+{
+	var xmlHttp = new XMLHttpRequest();
+	xmlHttp.onreadystatechange = function() { 
+		if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+		{
+			callback(xmlHttp.responseText);
+		}
+	}
+	xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+	try
+	{
+		xmlHttp.send(null);
+	}
+	catch(e)
+	{
+		callback("");
+	}
+}
+
+function colorCheck(responseText)
+{
+	var points = JSON.parse(responseText);
+	for (var id in points) {
+		document.getElementById(id).value=rgbToHex(points[id]);
+	}
+	
+}
+
+framerate=1000;
+function insaneFramerate(really)
+{
+	if(really)
+	{
+		framerate=1;
+	}
+	else{
+		framerate=1000;
+	}
+}
+
+function colorCheckLoop()
+{
+	httpGetAsyncSpecial('/getColors?deviceId=BS036121-3.1', colorCheck)
+	setTimeout(colorCheckLoop,framerate);
+}
+
+function allOn()
+{
+	httpGetAsyncSpecial("/setColor?deviceId=BS036121-3.1&r=255&g=255&b=255" ,pendingCheck);
+}
+function allOff()
+{
+	httpGetAsyncSpecial("/setColor?deviceId=BS036121-3.1&r=0&g=0&b=0" ,pendingCheck);
+}
+function allRandom()
+{
+	httpGetAsyncSpecial("/setRandom?deviceId=BS036121-3.1" ,pendingCheck);
+}
+
+function allMultiRandom()
+{
+	httpGetAsyncSpecial("/setAllRandom?deviceId=BS036121-3.1" ,pendingCheck);
+}
+function test()
+{
+	insaneFramerate(true);
+	httpGetAsyncSpecial("/test?deviceId=BS036121-3.1" ,pendingCheck);
+}
+
+function setBrightness(value)
+{
+	httpGetAsync("/setBrightness?deviceId=BS036121-3.1&percent=" + (value/100),pendingCheck);
+}
+
+</script>
+
+</head>
+<body onload="colorCheckLoop()">
+<div class="group">
+    <input type="color" id="all" name="all" value="#000000" oninput="fireColorChange(this.id,this.value);">
+    <label for="all">All</label>
+</div>
+<div class="group">
+	<input type="range" min="1" max="100" value="5" name="myPercent" oninput="setBrightness(this.value)">
+	<label for="myPercent">Brightness</label>
+</div>
+<div class="group">
+	<input type="color" id="0" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="1" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="2" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="3" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="4" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="5" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="6" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="7" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="8" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="9" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="10" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="11" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="12" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="13" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="14" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="15" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="16" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="17" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="18" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="19" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="20" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="21" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="22" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="23" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="24" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="25" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="26" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="27" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="28" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="29" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="30" value="#000000" oninput="fireColorChange(this.id,this.value);">
+	<input type="color" id="31" value="#000000" oninput="fireColorChange(this.id,this.value);">
+</div>
+<div class="group whitebg">
+	<button onclick="allOn()">All White</button><br/>
+	<button onclick="allOff()">All Off/black</button><br/>
+	<button onclick="test()">Test</button><br/>
+	<button onclick="allRandom()">All (one) Random</button><br/>
+	<button onclick="allMultiRandom()">All (multiple) Random</button><br/>
+</div>
+
+</body>
+</html>
