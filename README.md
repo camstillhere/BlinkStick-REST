@@ -3,6 +3,12 @@ A basic project for adding a REST front for a blinkstick device.
 
 I'm a fairly average Java developer and as such I did the balance of the quickest REST server with the easiest components of BlinkStick technology.
 
+**WARNING**
+If you intend to use this with a raspberry pi... use this project (pure python):
+https://github.com/camstillhere/BlinkStick-Restful-python-
+HIDAPI jar that this bundles with is not easy to get working on pi..
+
+
 # Launch your jar
 
 jdk-11.0.6+10\bin\java.exe -jar blinkStickRest-1.0-SNAPSHOT-all.jar
